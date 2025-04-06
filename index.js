@@ -1,7 +1,11 @@
-// index.js
 const express = require('express');
 const path = require('path');
+const cors = require('cors');
+
 const app = express();
+
+// Enable CORS for all routes
+app.use(cors());
 
 // Array of meatball recipes (data from your previous meatballs.json)
 const meatballs = [
@@ -86,7 +90,7 @@ app.get('/recipes', (req, res) => {
 
 // API endpoint: Get a specific recipe by ID
 app.get('/recipes/:id', (req, res) => {
-  const recipeId = parseInt(req.params.id);
+  const recipeId = parseInt(req.params.id, 10);
   const recipe = meatballs.find(item => item._id === recipeId);
   if (recipe) {
     res.json(recipe);
