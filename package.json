@@ -1,0 +1,13 @@
+{
+  "name": "meatballserver",
+  "version": "1.0.0",
+  "description": "Server side for Mama's Meatballs React website",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "license": "ISC"
+}
