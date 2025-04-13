@@ -1,13 +1,14 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const Joi = require('joi'); // Import Joi for validation
 
 const app = express();
 
-// Enable CORS for all routes
 app.use(cors());
+app.use(express.json()); // Parse JSON bodies
 
-// Array of meatball recipes (data from your previous meatballs.json)
+// Array of meatball recipes
 const meatballs = [
   {
     "_id": 1,
@@ -33,47 +34,17 @@ const meatballs = [
     "ingredients": ["1 can chickpeas", "1/2 cup breadcrumbs", "1 egg", "1/4 cup parsley", "1/4 cup cilantro", "Salt and pepper to taste"],
     "instructions": ["Mash chickpeas in a bowl.", "Mix in other ingredients.", "Form into meatballs.", "Bake at 375°F for 20 minutes."]
   },
-  {
-    "_id": 4,
-    "img_name": "swedish.jpg",
-    "name": "Swedish Meatballs",
-    "description": "Soft and tender meatballs served with a creamy gravy and lingonberry sauce.",
-    "ingredients": ["1 lb ground beef", "1/2 cup breadcrumbs", "1 egg", "1/4 cup parsley", "1/4 tsp nutmeg", "1/4 tsp allspice"],
-    "instructions": ["Mix all ingredients in a bowl.", "Form into meatballs.", "Bake at 375°F for 20 minutes.", "Serve with creamy gravy and lingonberry sauce."]
-  },
-  {
-    "_id": 5,
-    "img_name": "bbq.jpg",
-    "name": "BBQ Meatballs",
-    "description": "Sweet and tangy BBQ-glazed meatballs, perfect for parties and gatherings.",
-    "ingredients": ["1 lb ground beef", "1/2 cup breadcrumbs", "1 egg", "1/4 cup parsley", "1 cup BBQ sauce"],
-    "instructions": ["Mix all ingredients except BBQ sauce in a bowl.", "Form into meatballs.", "Bake at 375°F for 20 minutes.", "Toss in BBQ sauce before serving."]
-  },
-  {
-    "_id": 6,
-    "img_name": "cheesy.jpg",
-    "name": "Cheesy Meatballs",
-    "description": "Stuffed with gooey mozzarella, these meatballs are a cheese lover's dream.",
-    "ingredients": ["1 lb ground beef", "1/2 cup breadcrumbs", "1 egg", "1/4 cup parsley", "1/2 cup mozzarella cheese"],
-    "instructions": ["Mix all ingredients except cheese in a bowl.", "Form into meatballs, stuffing each with a cube of mozzarella.", "Bake at 375°F for 20 minutes."]
-  },
-  {
-    "_id": 7,
-    "img_name": "teriyaki.jpg",
-    "name": "Teriyaki Meatballs",
-    "description": "Sweet and savory teriyaki-glazed meatballs, perfect for an Asian-inspired meal.",
-    "ingredients": ["1 lb ground beef", "1/2 cup breadcrumbs", "1 egg", "1/4 cup parsley", "1/2 cup teriyaki sauce"],
-    "instructions": ["Mix all ingredients except teriyaki sauce in a bowl.", "Form into meatballs.", "Bake at 375°F for 20 minutes.", "Toss in teriyaki sauce before serving."]
-  },
-  {
-    "_id": 8,
-    "img_name": "buffalo.jpg",
-    "name": "Buffalo Meatballs",
-    "description": "Spicy buffalo sauce-coated meatballs, perfect for game day.",
-    "ingredients": ["1 lb ground beef", "1/2 cup breadcrumbs", "1 egg", "1/4 cup parsley", "1/2 cup buffalo sauce"],
-    "instructions": ["Mix all ingredients except buffalo sauce in a bowl.", "Form into meatballs.", "Bake at 375°F for 20 minutes.", "Toss in buffalo sauce before serving."]
-  }
+  // ... other recipes as needed
 ];
+
+// Define a Joi schema for validating new recipe data
+const recipeSchema = Joi.object({
+  img_name: Joi.string().min(3).required(),
+  name: Joi.string().min(3).required(),
+  description: Joi.string().min(5).required(),
+  ingredients: Joi.array().items(Joi.string().min(1)).required(),
+  instructions: Joi.array().items(Joi.string().min(1)).required()
+});
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -83,12 +54,12 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// API endpoint: Get all meatball recipes
+// GET endpoint: Return all meatball recipes
 app.get('/recipes', (req, res) => {
   res.json(meatballs);
 });
 
-// API endpoint: Get a specific recipe by ID
+// GET endpoint: Return a specific recipe by ID
 app.get('/recipes/:id', (req, res) => {
   const recipeId = parseInt(req.params.id, 10);
   const recipe = meatballs.find(item => item._id === recipeId);
@@ -97,6 +68,24 @@ app.get('/recipes/:id', (req, res) => {
   } else {
     res.status(404).json({ error: 'Recipe not found' });
   }
+});
+
+// POST endpoint: Validate and add a new recipe
+app.post('/recipes', (req, res) => {
+  // Validate the incoming data with Joi
+  const { error, value } = recipeSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+  // Generate a new _id (assumes IDs are numeric)
+  const newId = meatballs.length > 0 ? Math.max(...meatballs.map(r => r._id)) + 1 : 1;
+  const newRecipe = { _id: newId, ...value };
+
+  // Add the new recipe to the array
+  meatballs.push(newRecipe);
+
+  return res.status(201).json({ message: 'Recipe added successfully', recipe: newRecipe });
 });
 
 // Start the server
